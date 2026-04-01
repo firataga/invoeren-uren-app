@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PegasusFlex Urenregistratie</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 5px; background: #fff; }
+        #uren-formulier { padding: 15px; max-width: 850px; margin: auto; border: 1px solid #000; background: white; }
+        
+        .header-logo { font-size: 26px; font-weight: bold; margin-bottom: 15px; }
+        .input-group { margin-bottom: 10px; display: flex; align-items: center; }
+        .input-group label { width: 130px; font-size: 14px; }
+        .input-underlined { border: none; border-bottom: 1px solid #000; width: 250px; outline: none; font-size: 14px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: center; font-size: 11px; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        
+        .col-nr { width: 25px; }
+        .col-naam { width: 130px; }
+        .col-functie { width: 90px; }
+        .col-dag { width: 32px; } 
+        .col-uur { width: 40px; font-weight: bold; }
+
+        input.cell-in { width: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 13px; }
+        input.text-left { text-align: left; padding-left: 3px; }
+
+        /* Handtekening veld met Canvas */
+        .signature-section { margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; }
+        .signature-container { border: 1px solid #000; width: 250px; background: #fafafa; }
+        .signature-label { font-size: 10px; font-weight: bold; padding: 2px 5px; display: block; border-bottom: 1px solid #ccc; }
+        canvas { cursor: crosshair; touch-action: none; display: block; }
+        .clear-btn { font-size: 10px; cursor: pointer; color: red; background: none; border: none; padding: 5px; text-decoration: underline; }
+
+        .footer-text { margin-top: 20px; font-size: 13px; font-weight: bold; border-top: 1px solid #000; padding-top: 10px; }
+        
+        .btn-container { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; max-width: 850px; margin: 15px auto; }
+        .btn-add { background: #003366; color: white; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-verstuur { background: #25D366; color: white; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="uren-formulier">
+    <div class="header-logo">PEGASUSFLEX</div>
+
+    <div class="input-group">
+        <label>Opdrachtgever:</label>
+        <input type="text" id="opdrachtgever" class="input-underlined">
+    </div>
+    <div class="input-group">
+        <label>Project:</label>
+        <input type="text" id="project" class="input-underlined">
+    </div>
+    <div class="input-group">
+        <label>Week:</label>
+        <input type="number" id="week" class="input-underlined" style="width: 60px;">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="col-nr">#</th>
+                <th class="col-naam">Werknemer</th>
+                <th class="col-functie">Functie</th>
+                <th class="col-dag">Ma</th>
+                <th class="col-dag">Di</th>
+                <th class="col-dag">Wo</th>
+                <th class="col-dag">Do</th>
+                <th class="col-dag">Vr</th>
+                <th class="col-dag">Za</th>
+                <th class="col-dag">Zo</th>
+                <th class="col-uur">uur</th>
+            </tr>
+        </thead>
+        <tbody id="tabel-body">
+        </tbody>
+    </table>
+
+    <div class="signature-section">
+        <div class="signature-container">
+            <span class="signature-label">Handtekening Opdrachtgever</span>
+            <canvas id="sig-canvas" width="250" height="100"></canvas>
+        </div>
+        <button class="clear-btn" onclick="clearCanvas()">Handtekening wissen</button>
+    </div>
+
+    <div class="footer-text">
+        Pegasus Whatsapp nummer Uren: 06 83 77 10 84 
+    </div>
+</div>
+
+<div class="btn-container">
+    <button class="btn-add" onclick="voegRijToe()">+ Werknemer Toevoegen</button>
+    <button class="btn-verstuur" onclick="genereerPDF()">PDF OPSLAAN & WHATSAPP OPENEN</button>
+</div>
+
+<script>
+let rijTeller = 0;
+const canvas = document.getElementById('sig-canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+
+// Handtekening logica
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
+canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+canvas.addEventListener('touchend', stopDrawing);
+
+function startDrawing(e) {
+    drawing = true;
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+}
+
+function draw(e) {
+    if (!drawing) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+    ctx.stroke();
+}
+
+function stopDrawing() { drawing = false; }
+function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+function voegRijToe() {
+    rijTeller++;
+    const tbody = document.getElementById('tabel-body');
+    const nieuweRij = document.createElement('tr');
+    nieuweRij.innerHTML = `
+        <td>${rijTeller}</td>
+        <td><input type="text" class="cell-in text-left"></td>
+        <td><input type="text" class="cell-in text-left"></td>
+        <td><input type="number" class="cell-in d-uur" value="8" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="8" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="8" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="8" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="8" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="0" oninput="bereken()"></td>
+        <td><input type="number" class="cell-in d-uur" value="0" oninput="bereken()"></td>
+        <td class="rij-totaal" style="font-weight:bold;">40</td>
+    `;
+    tbody.appendChild(nieuweRij);
+}
+
+function bereken() {
+    document.querySelectorAll("#tabel-body tr").forEach(rij => {
+        let totaal = 0;
+        rij.querySelectorAll(".d-uur").forEach(inpt => totaal += parseFloat(inpt.value || 0));
+        rij.querySelector(".rij-totaal").innerText = totaal;
+    });
+}
+
+function genereerPDF() {
+    const element = document.getElementById('uren-formulier');
+    const week = document.getElementById('week').value || "onbekend";
+    const opt = {
+        margin: 5,
+        filename: `Pegasus_Week_${week}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3, logging: false, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => {
+        window.location.href = "https://wa.me/31683771084";
+    });
+}
+
+voegRijToe();
+</script>
+
+</body>
+</html>
